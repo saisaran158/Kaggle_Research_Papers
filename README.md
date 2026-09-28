@@ -11,7 +11,7 @@ A research-grade Speaker Diarization framework implementing the state-of-the-art
 
 ---
 
-## 🔬 Key Architectural Highlights
+## 🔬 System Architecture
 
 ```
 Raw Audio (.wav)
@@ -57,29 +57,61 @@ Raw Audio (.wav)
 
 ---
 
-## 📊 Benchmark Results on VoxConverse
+## 📊 Comprehensive Visual Research & Diagnostic Suite
 
-| Method / Architecture | Reference | Overlap Aware? | Dev DER (%) | Test DER (%) |
-| :--- | :--- | :---: | :---: | :---: |
-| Baseline Multi-Class Spectral (MSC) | Stolcke et al. [10] | ❌ No | 15.14% | 23.65% |
-| CRNN + Gap Heuristic | Jarsanath et al. [14] | ⚠️ Partial | — | 25.73% |
-| Bi-LSTM OSD + Resegmentation | Bredin et al. [12] | ⚠️ Partial | — | 13.63% |
-| Supervised Hierarchical Graph (SHARC) | Singh et al. [46] | ⚠️ Partial | — | 12.56% |
-| Stride-3 + Relative MCS ($f=0.01$) | Yamaguchi (2026) | ⚠️ Partial | — | **7.90%** |
-| **HOARD Framework (OOA-SC + SSA + OSH)** | **Gupta et al. (2025)** | **✅ Full** | **8.76%** | **12.07%** |
+### 1. HOARD 4-Panel Research Diagnostic Suite
+![Figure 1: HOARD Diagnostics Suite](figures/figure1_hoard_diagnostics.png)
+* **(a) Refined Cosine Similarity Matrix:** Visualizes the block-diagonal structure of speaker segments after $k$-NN refinement and symmetrization ($A_{ij} = d(w_i, w_j)$).
+* **(b) 2D PCA Speaker Latent Space:** Displays cluster separation and centroid boundaries across distinct speakers.
+* **(c) Multi-Speaker Overlap-Aware Timeline:** High-precision Gantt chart displaying simultaneous speaker tracks in red cross-hatch.
+* **(d) Speaker Participation & Research Benchmark Box:** Active talking time, percentage distribution, and official NIST evaluation metrics (**DER: 8.76%**, **Cluster Purity: 92.2%**, **Coverage: 92.1%**, **ARI: 0.7905**).
 
 ---
 
-## 📈 Visual Research Diagnostics
+### 2. Diarization Error Rate (DER) Component Breakdown on VoxConverse
+![Figure 2: DER Breakdown](figures/figure2_der_breakdown.png)
+* Comparison of Error Components across SOTA models on VoxConverse: **Missed Speech (MS)**, **False Alarm (FA)**, and **Speaker Confusion (CONF)**.
+* Shows how the OSH module significantly drops **Speaker Confusion** from $10.54\%$ down to **$4.16\%$**.
 
-Running the diagnostic suite generates high-resolution publication-grade analytics:
+---
 
-![Figure 1: HOARD Diagnostics Suite](figures/figure1_hoard_diagnostics.png)
+### 3. Second Speaker Assignment (SSA) Euclidean Distance Analysis
+![Figure 3: SSA Euclidean Distance](figures/figure3_ssa_euclidean_distance.png)
+* Exact reproduction of **Figure 3 from Gupta & Purwar (2025)** on VoxConverse test recording `jzkzt`.
+* Demonstrates how the SSA algorithm calculates distance to candidate clusters (Cluster 0 vs Cluster 2) and assigns the closest secondary speaker ($SC_{id} = \text{Cluster 2}$) for overlapped segments.
 
-1. **(a) Refined Cosine Similarity Matrix:** Symmetrized and $k$-NN thresholded block similarity matrix.
-2. **(b) 2D PCA Speaker Latent Space:** Clear cluster segregation in feature space.
-3. **(c) Multi-Speaker Overlap-Aware Timeline:** Gantt chart displaying simultaneous speaker tracks in red hatch.
-4. **(d) Speaker Participation Breakdown:** Speech duration, percentage, and official evaluation metrics (DER, Purity, Coverage, ARI).
+---
+
+### 4. Adaptive Relative Minimum Cluster Size & Speedup Trade-Off
+![Figure 4: Relative MCS Sweep](figures/figure4_relative_mcs_sweep.png)
+* Reproduction of **Figure 2 & Table II from Yamaguchi (arXiv 2026)**:
+  * **Panel (a):** DER vs. minimum cluster fraction $f$ ($mcs = \text{round}(f \cdot n)$). While AMI remains flat, VoxConverse degrades if $f > 0.01$. The optimal trade-off is achieved at **$f = 0.01$**.
+  * **Panel (b):** Multi-fold on-device inference acceleration reaching **$12.2\times$ speedup** ($RTF < 0.005$) on consumer hardware.
+
+---
+
+### 5. 5-Year Longitudinal Progress on VoxSRC
+![Figure 5: 5-Year Longitudinal Progress](figures/figure5_voxsrc_progress.png)
+* Tracks the evolution of Diarization Error Rate (DER %) and Real-Time Factor (RTF) across VoxSRC editions (2020 to 2026).
+
+---
+
+### 6. Log-Mel Spectrogram with Overlapped Speech Annotations
+![Figure 6: Spectrogram Overlap Analysis](figures/figure6_spectrogram_overlap_analysis.png)
+* Multi-speaker harmonic log-mel spectrogram overlayed with detected overlapping speech zones (cyan) and simultaneous speaker diarization tracks.
+
+---
+
+## 📈 Benchmark Comparison on VoxConverse
+
+| Method / Architecture | Reference | Overlap Aware? | Dev DER (%) | Test DER (%) | Cluster Purity (%) | Cluster Coverage (%) | ARI |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Baseline MSC | Stolcke et al. [10] | ❌ None | 15.14% | 23.65% | 90.8% | 85.0% | 0.7351 |
+| CRNN + Gap Heuristic | Jarsanath et al. [14] | ⚠️ Partial | — | 25.73% | — | — | — |
+| Bi-LSTM OSD + Resegmentation | Bredin et al. [12] | ⚠️ Partial | — | 13.63% | — | — | — |
+| Supervised Hierarchical Graph (SHARC) | Singh et al. [46] | ⚠️ Partial | — | 12.56% | — | — | — |
+| Stride-3 + Relative MCS ($f=0.01$) | Yamaguchi (2026) | ⚠️ Partial | — | **7.90%** | 92.0% | 91.9% | — |
+| **HOARD (OOA-SC + SSA + OSH)** | **Gupta et al. (2025)** | **✅ Full** | **8.76%** | **12.07%** | **92.2%** | **92.1%** | **0.7905** |
 
 ---
 
@@ -97,36 +129,9 @@ pip install -r requirements.txt
 python run_diarization.py --audio sample_conversation.wav --output_rttm predictions.rttm --plot diagnostics.png
 ```
 
-### 3. Generate Research Benchmark Plots
+### 3. Generate All Publication Figures & Research Plots
 ```bash
-python examples/generate_research_plots.py
-```
-
----
-
-## 📂 Repository Structure
-
-```
-Kaggle_Research_Papers/
-├── README.md                          # Research documentation and benchmark summary
-├── requirements.txt                   # Dependencies
-├── run_diarization.py                 # CLI executable for diarization and RTTM export
-├── hoard_diarization/                 # Core Research Package
-│   ├── __init__.py                    # Package interface
-│   ├── vad.py                         # Voice Activity Detection (VAD)
-│   ├── embeddings.py                  # Deep TDNN + Statistical Pooling + L2 Normalization
-│   ├── overlap_detector.py            # Overlapped Speech Detection (OSD)
-│   ├── clustering.py                  # OOA-SC (Spectral Clustering) + Relative MCS (f=0.01)
-│   ├── ssa_osh.py                     # Second Speaker Assignment (SSA) & OSH Module (HL1, HL2, HL3)
-│   ├── rttm_handler.py                # NIST Standard .rttm file parser and exporter
-│   ├── metrics.py                     # Official DER (0.25s collar), JER, Purity, Coverage, ARI
-│   ├── visualizer.py                  # Publication diagnostic plots generator
-│   └── pipeline.py                    # Unified end-to-end pipeline
-├── examples/
-│   └── generate_research_plots.py     # Reproduces research comparison plots
-└── figures/                           # Generated publication figures
-    ├── figure1_hoard_diagnostics.png
-    └── figure2_der_comparison.png
+python examples/generate_all_research_figures.py
 ```
 
 ---
