@@ -1,5 +1,6 @@
 """
-Script to generate the complete 12-page IEEE/Springer formatted research paper Word document.
+Script to generate the complete 12-page IEEE/Springer formatted research paper Word document
+in authentic Two-Column layout matching IEEE Conference / Journal specifications.
 Path: C:\ResearchPaper\HOARD_Speaker_Diarization_Research_Paper.docx
 """
 
@@ -9,6 +10,7 @@ from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
+from docx.enum.section import WD_SECTION_START
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 
@@ -18,57 +20,69 @@ def set_cell_background(cell, fill_hex):
     shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>')
     tcPr.append(shd)
 
-def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
+def set_cell_margins(cell, top=80, bottom=80, left=100, right=100):
     """Sets cell padding."""
     tcPr = cell._element.get_or_add_tcPr()
     tcMar = parse_xml(f'<w:tcMar {nsdecls("w")}><w:top w:w="{top}" w:type="dxa"/><w:bottom w:w="{bottom}" w:type="dxa"/><w:left w:w="{left}" w:type="dxa"/><w:right w:w="{right}" w:type="dxa"/></w:tcMar>')
     tcPr.append(tcMar)
 
+def set_two_column_section(section, num_cols=2, space_pt=18):
+    """Configures a Word section to have 2 columns with specified gap spacing."""
+    space_dxa = int(space_pt * 20)
+    sectPr = section._sectPr
+    cols = sectPr.xpath('./w:cols')
+    if cols:
+        cols[0].set(qn('w:num'), str(num_cols))
+        cols[0].set(qn('w:space'), str(space_dxa))
+    else:
+        new_cols = parse_xml(f'<w:cols {nsdecls("w")} w:num="{num_cols}" w:space="{space_dxa}"/>')
+        sectPr.append(new_cols)
+
 def add_heading_styled(doc, text, level=1):
     h = doc.add_heading(text, level=level)
-    h.paragraph_format.space_before = Pt(12)
-    h.paragraph_format.space_after = Pt(4)
+    h.paragraph_format.space_before = Pt(10)
+    h.paragraph_format.space_after = Pt(3)
     h.paragraph_format.keep_with_next = True
     run = h.runs[0]
     run.font.name = "Times New Roman"
     run.font.color.rgb = RGBColor(0, 0, 0)
     if level == 1:
-        run.font.size = Pt(12)
+        run.font.size = Pt(10.5)
         run.font.bold = True
     elif level == 2:
-        run.font.size = Pt(11)
+        run.font.size = Pt(9.5)
         run.font.bold = True
         run.font.italic = True
     elif level == 3:
-        run.font.size = Pt(10)
+        run.font.size = Pt(9)
         run.font.bold = True
     return h
 
-def add_body_paragraph(doc, text, space_after=6, line_spacing=1.15):
+def add_body_paragraph(doc, text, space_after=4, line_spacing=1.05):
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(space_after)
     p.paragraph_format.line_spacing = line_spacing
     p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     run = p.add_run(text)
     run.font.name = "Times New Roman"
-    run.font.size = Pt(10)
+    run.font.size = Pt(9.5)
     return p
 
-def add_figure_with_caption(doc, image_path, caption_text, width_inches=6.0):
+def add_figure_with_caption(doc, image_path, caption_text, width_inches=3.35):
     if os.path.exists(image_path):
         p_img = doc.add_paragraph()
         p_img.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_img.paragraph_format.space_before = Pt(8)
-        p_img.paragraph_format.space_after = Pt(4)
+        p_img.paragraph_format.space_before = Pt(6)
+        p_img.paragraph_format.space_after = Pt(3)
         run_img = p_img.add_run()
         run_img.add_picture(image_path, width=Inches(width_inches))
 
         p_cap = doc.add_paragraph()
         p_cap.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_cap.paragraph_format.space_after = Pt(10)
+        p_cap.paragraph_format.space_after = Pt(8)
         run_cap = p_cap.add_run(caption_text)
         run_cap.font.name = "Times New Roman"
-        run_cap.font.size = Pt(9)
+        run_cap.font.size = Pt(8.5)
         run_cap.font.bold = True
         run_cap.font.italic = True
     else:
@@ -82,39 +96,39 @@ def build_paper():
 
     doc = Document()
 
-    # Set Margins (1 inch)
-    for section in doc.sections:
-        section.top_margin = Inches(1.0)
-        section.bottom_margin = Inches(1.0)
-        section.left_margin = Inches(1.0)
-        section.right_margin = Inches(1.0)
+    # -------------------------------------------------------------
+    # SECTION 1: Single-Column Title, Authors, and Abstract
+    # -------------------------------------------------------------
+    sec1 = doc.sections[0]
+    sec1.top_margin = Inches(0.75)
+    sec1.bottom_margin = Inches(0.75)
+    sec1.left_margin = Inches(0.75)
+    sec1.right_margin = Inches(0.75)
 
-    # -------------------------------------------------------------
-    # Title & Header
-    # -------------------------------------------------------------
+    # Title
     title_p = doc.add_paragraph()
     title_p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title_p.paragraph_format.space_after = Pt(8)
+    title_p.paragraph_format.space_after = Pt(6)
     title_run = title_p.add_run("Handled Overlap-Aware Refined Diarization (HOARD) with Adaptive Relative Clustering for Multi-Speaker Conversational Audio")
     title_run.font.name = "Times New Roman"
-    title_run.font.size = Pt(16)
+    title_run.font.size = Pt(18)
     title_run.font.bold = True
 
     # Authors
     author_p = doc.add_paragraph()
     author_p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    author_p.paragraph_format.space_after = Pt(14)
+    author_p.paragraph_format.space_after = Pt(12)
     arun1 = author_p.add_run("Research Team & Contributors\nDepartment of Information Technology & Computer Science\nKarpagam College of Engineering, Coimbatore, India\n")
     arun1.font.name = "Times New Roman"
     arun1.font.size = Pt(10)
     arun1.font.italic = True
 
-    # Abstract Box
+    # Abstract Table Box (Full Width across single column)
     abs_table = doc.add_table(rows=1, cols=1)
     abs_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     abs_cell = abs_table.cell(0, 0)
     set_cell_background(abs_cell, "F2F4F7")
-    set_cell_margins(abs_cell, top=140, bottom=140, left=200, right=200)
+    set_cell_margins(abs_cell, top=120, bottom=120, left=160, right=160)
 
     p_abs = abs_cell.paragraphs[0]
     p_abs.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -133,7 +147,7 @@ def build_paper():
 
     p_kw = doc.add_paragraph()
     p_kw.paragraph_format.space_before = Pt(6)
-    p_kw.paragraph_format.space_after = Pt(12)
+    p_kw.paragraph_format.space_after = Pt(10)
     run_kwh = p_kw.add_run("Keywords—")
     run_kwh.font.name = "Times New Roman"
     run_kwh.font.size = Pt(9.5)
@@ -142,6 +156,16 @@ def build_paper():
     run_kwt.font.name = "Times New Roman"
     run_kwt.font.size = Pt(9.5)
     run_kwt.font.italic = True
+
+    # -------------------------------------------------------------
+    # SECTION 2: Continuous Two-Column Layout for Entire Body
+    # -------------------------------------------------------------
+    sec2 = doc.add_section(WD_SECTION_START.CONTINUOUS)
+    sec2.top_margin = Inches(0.75)
+    sec2.bottom_margin = Inches(0.75)
+    sec2.left_margin = Inches(0.75)
+    sec2.right_margin = Inches(0.75)
+    set_two_column_section(sec2, num_cols=2, space_pt=18)
 
     # -------------------------------------------------------------
     # SECTION I: INTRODUCTION
@@ -160,7 +184,7 @@ def build_paper():
 
     add_body_paragraph(
         doc,
-        "Recent research endeavors to handle overlapping speech have explored both supervised End-to-End Neural Diarization (EEND) models and modular clustering-based pipelines [5], [11], [12]. While EEND methods directly optimize multi-label hypotheses per frame, they suffer from severe overfitting to training speaker distributions, struggle with variable or large speaker counts (e.g., > 5 speakers), and incur heavy computational penalties that preclude real-time, on-device execution [16], [17]. Conversely, modular clustering systems remain the dominant choice in competitive challenges such as the VoxCeleb Speaker Recognition Challenges (VoxSRC 2019–2023) [40]. Nonetheless, traditional modular clustering approaches suffer from two acute vulnerabilities: (1) lack of fine-grained second-speaker assignment mechanisms for overlapped regions, and (2) fixed cluster thresholding (e.g., rigid minimum cluster size heuristics) that severely under-counts infrequent speakers in long, unconstrained \"in-the-wild\" audio streams such as the VoxConverse dataset [42]."
+        "Recent research endeavors to handle overlapping speech have explored both supervised End-to-End Neural Diarization (EEND) models and modular clustering-based pipelines [5], [11], [12]. While EEND methods directly optimize multi-label hypotheses per frame, they suffer from severe overfitting to training speaker distributions, struggle with variable or large speaker counts (e.g., > 5 speakers), and incur heavy computational penalties that preclude real-time, on-device execution [16], [17]. Conversely, modular clustering systems remain the dominant choice in competitive challenges such as the VoxCeleb Speaker Recognition Challenges (VoxSRC 2019–2023) [29]. Nonetheless, traditional modular clustering approaches suffer from two acute vulnerabilities: (1) lack of fine-grained second-speaker assignment mechanisms for overlapped regions, and (2) fixed cluster thresholding (e.g., rigid minimum cluster size heuristics) that severely under-counts infrequent speakers in long, unconstrained \"in-the-wild\" audio streams such as the VoxConverse dataset [28]."
     )
 
     add_body_paragraph(
@@ -169,39 +193,40 @@ def build_paper():
     )
 
     p_contrib = doc.add_paragraph()
-    p_contrib.paragraph_format.left_indent = Inches(0.25)
-    p_contrib.paragraph_format.space_after = Pt(6)
+    p_contrib.paragraph_format.left_indent = Inches(0.15)
+    p_contrib.paragraph_format.space_after = Pt(4)
+    p_contrib.paragraph_format.line_spacing = 1.05
     c1 = p_contrib.add_run("1. Novel HOARD Architecture: ")
     c1.bold = True
     c1.font.name = "Times New Roman"
-    c1.font.size = Pt(10)
+    c1.font.size = Pt(9.5)
     c1_txt = p_contrib.add_run("We design an integrated diarization architecture combining high-accuracy Voice Activity Detection (VAD), sequence-labeling Overlapped Speech Detection (OSD), Time-Delay Neural Network (TDNN) embeddings with statistical pooling, and an Overlapped Speakers' Handling (OSH) fusion module.\n")
     c1_txt.font.name = "Times New Roman"
-    c1_txt.font.size = Pt(10)
+    c1_txt.font.size = Pt(9.5)
 
     c2 = p_contrib.add_run("2. Optimized Overlap-Aware Spectral Clustering (OOA-SC): ")
     c2.bold = True
     c2.font.name = "Times New Roman"
-    c2.font.size = Pt(10)
+    c2.font.size = Pt(9.5)
     c2_txt = p_contrib.add_run("We implement an alternating optimization scheme that simultaneously minimizes Normalized Cut (N-Cut) graph objectives and data-point-to-centroid distances on symmetrized k-NN affinity matrices.\n")
     c2_txt.font.name = "Times New Roman"
-    c2_txt.font.size = Pt(10)
+    c2_txt.font.size = Pt(9.5)
 
     c3 = p_contrib.add_run("3. Second Speaker Assignment (SSA) Algorithm: ")
     c3.bold = True
     c3.font.name = "Times New Roman"
-    c3.font.size = Pt(10)
+    c3.font.size = Pt(9.5)
     c3_txt = p_contrib.add_run("We formulate a deterministic centroid-distance assignment algorithm that identifies secondary overlapping speakers without requiring speech separation front-ends, feeding a 3-hypothesis weighted majority voting engine (HL1, HL2, HL3).\n")
     c3_txt.font.name = "Times New Roman"
-    c3_txt.font.size = Pt(10)
+    c3_txt.font.size = Pt(9.5)
 
     c4 = p_contrib.add_run("4. Adaptive Relative Minimum Cluster Sizing (Relative MCS): ")
     c4.bold = True
     c4.font.name = "Times New Roman"
-    c4.font.size = Pt(10)
+    c4.font.size = Pt(9.5)
     c4_txt = p_contrib.add_run("We resolve speaker under-counting in stride-accelerated inference by defining mcs = round(f * n) with f = 0.01, preserving small-speaker clusters on VoxConverse while securing a 12.2x speedup (RTF < 0.005) on consumer hardware.")
     c4_txt.font.name = "Times New Roman"
-    c4_txt.font.size = Pt(10)
+    c4_txt.font.size = Pt(9.5)
 
     # -------------------------------------------------------------
     # SECTION II: RELATED WORK
@@ -216,25 +241,25 @@ def build_paper():
     add_heading_styled(doc, "A. Unsupervised Modular Clustering Systems", level=2)
     add_body_paragraph(
         doc,
-        "The classical diarization pipeline comprises sequential stages: Voice Activity Detection (VAD), short-window feature extraction, speaker embedding generation (e.g., i-vectors [3], x-vectors [4], d-vectors, or ECAPA-TDNNs [38]), and clustering. Agglomerative Hierarchical Clustering (AHC) using probabilistic linear discriminant analysis (PLDA) or cosine similarity has long served as the dominant baseline [35]. To handle non-linear manifold geometries, Spectral Clustering (SC) and auto-tuning eigengap algorithms were introduced by Park et al. [7] and Lin et al. [36]. However, standard spectral clustering maps each audio frame to exactly one discrete cluster, rendering it fundamentally unable to represent overlapping conversational speech without explicit architectural modifications."
+        "The classical diarization pipeline comprises sequential stages: Voice Activity Detection (VAD), short-window feature extraction, speaker embedding generation (e.g., i-vectors [3], x-vectors [4], d-vectors, or ECAPA-TDNNs), and clustering. Agglomerative Hierarchical Clustering (AHC) using probabilistic linear discriminant analysis (PLDA) or cosine similarity has long served as the dominant baseline [2]. To handle non-linear manifold geometries, Spectral Clustering (SC) and auto-tuning eigengap algorithms were introduced by Park et al. [7] and Lin et al. However, standard spectral clustering maps each audio frame to exactly one discrete cluster, rendering it fundamentally unable to represent overlapping conversational speech without explicit architectural modifications."
     )
 
     add_heading_styled(doc, "B. Supervised & Neural End-to-End Diarization (EEND)", level=2)
     add_body_paragraph(
         doc,
-        "To bypass the stage-by-stage errors of modular systems, Fujita et al. [114] and Horiguchi et al. [115] introduced End-to-End Neural Diarization (EEND) based on self-attention mechanisms trained with Permutation Invariant Training (PIT) loss. EEND naturally outputs multi-label predictions per frame, enabling simultaneous overlap identification. Target-Speaker Voice Activity Detection (TS-VAD) [35], [89] further enhanced neural diarization by conditioning frame-level predictions on pre-extracted target speaker vectors. Despite these advances, EEND models degrade severely when evaluating recordings with unknown, large speaker counts (> 5–8 speakers) or long conversational durations, as documented in recent VoxSRC retrospectives [40]. Moreover, their heavy parameter footprint poses prohibitive memory demands for on-device applications."
+        "To bypass the stage-by-stage errors of modular systems, Fujita et al. and Horiguchi et al. introduced End-to-End Neural Diarization (EEND) based on self-attention mechanisms trained with Permutation Invariant Training (PIT) loss. EEND naturally outputs multi-label predictions per frame, enabling simultaneous overlap identification. Target-Speaker Voice Activity Detection (TS-VAD) [24] further enhanced neural diarization by conditioning frame-level predictions on pre-extracted target speaker vectors. Despite these advances, EEND models degrade severely when evaluating recordings with unknown, large speaker counts (> 5–8 speakers) or long conversational durations, as documented in recent VoxSRC retrospectives [29]. Moreover, their heavy parameter footprint poses prohibitive memory demands for on-device applications."
     )
 
     add_heading_styled(doc, "C. Overlap Detection and Second Speaker Handling", level=2)
     add_body_paragraph(
         doc,
-        "To bridge the gap between modular efficiency and multi-speaker overlap capability, specialized Overlapped Speech Detection (OSD) modules have been integrated into clustering back-ends. Bullock et al. [6] and Bredin et al. [12] utilized Bi-LSTM and Convolutional Recurrent Neural Networks (CRNNs) to flag overlapping boundaries for localized re-segmentation. Raj et al. [11] developed Multi-Class Spectral Clustering with Overlaps (MSC), and proposed DOVER-Lap [39] for combining overlap-aware hypotheses via voting. Singh et al. [46] explored Supervised Hierarchical Clustering via Graph Neural Networks (SHARC). Most recently, Gupta & Purwar (2025) [1] formulated the Handled Overlap-Aware Refined Diarization (HOARD) framework, proving that alternating optimization combined with second speaker centroid distance assignment provides superior speaker discrimination on VoxConverse."
+        "To bridge the gap between modular efficiency and multi-speaker overlap capability, specialized Overlapped Speech Detection (OSD) modules have been integrated into clustering back-ends. Bullock et al. [6] and Bredin et al. [12] utilized Bi-LSTM and Convolutional Recurrent Neural Networks (CRNNs) to flag overlapping boundaries for localized re-segmentation. Raj et al. [11] developed Multi-Class Spectral Clustering with Overlaps (MSC), and proposed DOVER-Lap [23] for combining overlap-aware hypotheses via voting. Singh et al. explored Supervised Hierarchical Clustering via Graph Neural Networks (SHARC). Most recently, Gupta & Purwar (2025) [1] formulated the Handled Overlap-Aware Refined Diarization (HOARD) framework, proving that alternating optimization combined with second speaker centroid distance assignment provides superior speaker discrimination on VoxConverse."
     )
 
     add_heading_styled(doc, "D. Inference Acceleration & Clustering Granularity", level=2)
     add_body_paragraph(
         doc,
-        "In on-device and edge AI deployments, reducing computational latency—measured as Real-Time Factor (RTF)—is paramount. Recent benchmarks such as SDBench [4] demonstrated that coarsening the segmentation stride yields multi-fold speedups. However, Yamaguchi (2026) [Paper 3] observed that aggressive stride coarsening severely damages diarization accuracy on unconstrained \"in-the-wild\" audio, causing the DER on VoxConverse to spike from 7.5% to 11.3%. Yamaguchi traced this failure to speaker under-counting caused by fixed minimum cluster size heuristics discarding small speaker clusters, and proved that a relative scaling coefficient resolves this bottleneck without sacrificing speed."
+        "In on-device and edge AI deployments, reducing computational latency—measured as Real-Time Factor (RTF)—is paramount. Recent benchmarks such as SDBench demonstrated that coarsening the segmentation stride yields multi-fold speedups. However, Yamaguchi (2026) [30] observed that aggressive stride coarsening severely damages diarization accuracy on unconstrained \"in-the-wild\" audio, causing the DER on VoxConverse to spike from 7.5% to 11.3%. Yamaguchi traced this failure to speaker under-counting caused by fixed minimum cluster size heuristics discarding small speaker clusters, and proved that a relative scaling coefficient resolves this bottleneck without sacrificing speed."
     )
 
     # -------------------------------------------------------------
@@ -254,16 +279,16 @@ def build_paper():
 
     p_eq1 = doc.add_paragraph()
     p_eq1.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_eq1.paragraph_format.space_before = Pt(4)
-    p_eq1.paragraph_format.space_after = Pt(4)
-    run_eq1 = p_eq1.add_run("DER = ( T_MS + T_FA + T_CONF ) / T_REF  x  100%          (1)")
+    p_eq1.paragraph_format.space_before = Pt(3)
+    p_eq1.paragraph_format.space_after = Pt(3)
+    run_eq1 = p_eq1.add_run("DER = ( T_MS + T_FA + T_CONF ) / T_REF  x  100%      (1)")
     run_eq1.font.name = "Times New Roman"
-    run_eq1.font.size = Pt(10)
+    run_eq1.font.size = Pt(9.5)
     run_eq1.font.bold = True
 
     add_body_paragraph(
         doc,
-        "where T_REF is the total duration of active speech in the reference annotation, T_MS is the missed speech duration (speech present in ground truth but omitted in hypothesis), T_FA is the false alarm duration (non-speech falsely hypothesized as speech), and T_CONF is the speaker confusion duration (speech attributed to the incorrect speaker label). In accordance with NIST SRE and VoxSRC benchmark standards, a forgiveness collar of 0.25 seconds is applied symmetrically around all reference turn boundaries to absorb minor human annotation discrepancies [40]."
+        "where T_REF is the total duration of active speech in the reference annotation, T_MS is the missed speech duration (speech present in ground truth but omitted in hypothesis), T_FA is the false alarm duration (non-speech falsely hypothesized as speech), and T_CONF is the speaker confusion duration (speech attributed to the incorrect speaker label). In accordance with NIST SRE and VoxSRC benchmark standards, a forgiveness collar of 0.25 seconds is applied symmetrically around all reference turn boundaries to absorb minor human annotation discrepancies [29]."
     )
 
     # -------------------------------------------------------------
@@ -273,16 +298,16 @@ def build_paper():
     
     add_body_paragraph(
         doc,
-        "The complete architecture of the proposed Handled Overlap-Aware Refined Diarization (HOARD) framework is depicted in Figure 1 and Figure 6. The framework operates through seven tightly synchronized processing modules: (1) Voice Activity Detection, (2) Sequence-Labeling Overlap Detection, (3) TDNN Statistical Embedding Extraction, (4) Optimized Overlap-Aware Spectral Clustering (OOA-SC), (5) Adaptive Relative Minimum Cluster Size Thresholding, (6) Second Speaker Assignment (SSA), and (7) Overlapped Speakers' Handling (OSH) Multi-Hypothesis Fusion."
+        "The complete architecture of the proposed Handled Overlap-Aware Refined Diarization (HOARD) framework is depicted in Fig. 1 and Fig. 4. The framework operates through seven tightly synchronized processing modules: (1) Voice Activity Detection, (2) Sequence-Labeling Overlap Detection, (3) TDNN Statistical Embedding Extraction, (4) Optimized Overlap-Aware Spectral Clustering (OOA-SC), (5) Adaptive Relative Minimum Cluster Size Thresholding, (6) Second Speaker Assignment (SSA), and (7) Overlapped Speakers' Handling (OSH) Multi-Hypothesis Fusion."
     )
 
-    # Add Figure 6
+    # Add Figure 6 (Single Column width)
     fig6_path = os.path.join(figures_dir, "figure6_spectrogram_overlap_analysis.png")
     add_figure_with_caption(
         doc,
         fig6_path,
-        "Fig. 1. Log-Mel Spectrogram of multi-speaker conversational audio with detected overlapping speech regions (cyan) and corresponding HOARD overlap-aware dual-track alignment.",
-        width_inches=6.2
+        "Fig. 1. Log-Mel Spectrogram with detected overlapping speech zones (cyan) and dual-track speaker alignment.",
+        width_inches=3.35
     )
 
     add_heading_styled(doc, "A. Voice Activity Detection (VAD)", level=2)
@@ -305,11 +330,11 @@ def build_paper():
 
     p_eq2 = doc.add_paragraph()
     p_eq2.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_eq2.paragraph_format.space_before = Pt(4)
-    p_eq2.paragraph_format.space_after = Pt(4)
-    run_eq2 = p_eq2.add_run("Norm_L2 = ||v_i||_2  =  sqrt( sum_{d=1}^D v_{i,d}^2 ) ,      v_i <- v_i / (||v_i||_2 + eps)          (2)")
+    p_eq2.paragraph_format.space_before = Pt(3)
+    p_eq2.paragraph_format.space_after = Pt(3)
+    run_eq2 = p_eq2.add_run("v_i <- v_i / ( ||v_i||_2 + eps )          (2)")
     run_eq2.font.name = "Times New Roman"
-    run_eq2.font.size = Pt(10)
+    run_eq2.font.size = Pt(9.5)
     run_eq2.font.bold = True
 
     add_heading_styled(doc, "D. Optimized Overlap-Aware Spectral Clustering (OOA-SC)", level=2)
@@ -325,26 +350,26 @@ def build_paper():
 
     p_eq3 = doc.add_paragraph()
     p_eq3.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_eq3.paragraph_format.space_before = Pt(4)
-    p_eq3.paragraph_format.space_after = Pt(4)
+    p_eq3.paragraph_format.space_before = Pt(3)
+    p_eq3.paragraph_format.space_after = Pt(3)
     run_eq3 = p_eq3.add_run("min_{A_i, C} Ncut(A_i, C) = sum_{k=1}^K  Cut(A_k, C) / C_w          (3)")
     run_eq3.font.name = "Times New Roman"
-    run_eq3.font.size = Pt(10)
+    run_eq3.font.size = Pt(9.5)
     run_eq3.font.bold = True
 
     add_heading_styled(doc, "E. Adaptive Relative Minimum Cluster Size (Relative MCS)", level=2)
     add_body_paragraph(
         doc,
-        "Standard agglomerative and spectral clustering implementations enforce a fixed minimum cluster size (e.g., mcs = 12) to prune spurious noise blips. However, as demonstrated in our diagnostic analysis, in-the-wild audio recordings from VoxConverse exhibit high speaker turn volatility where infrequent speakers contribute as few as 8–10 embeddings total. A rigid threshold of 12 completely dissolves these valid speakers, absorbing them into dominant clusters and triggering severe speaker under-counting. To eliminate this pathology, we formulate an Adaptive Relative Minimum Cluster Size rule [Yamaguchi 2026]:"
+        "Standard agglomerative and spectral clustering implementations enforce a fixed minimum cluster size (e.g., mcs = 12) to prune spurious noise blips. However, as demonstrated in our diagnostic analysis, in-the-wild audio recordings from VoxConverse exhibit high speaker turn volatility where infrequent speakers contribute as few as 8–10 embeddings total. A rigid threshold of 12 completely dissolves these valid speakers, absorbing them into dominant clusters and triggering severe speaker under-counting. To eliminate this pathology, we formulate an Adaptive Relative Minimum Cluster Size rule [30]:"
     )
 
     p_eq4 = doc.add_paragraph()
     p_eq4.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_eq4.paragraph_format.space_before = Pt(4)
-    p_eq4.paragraph_format.space_after = Pt(4)
+    p_eq4.paragraph_format.space_before = Pt(3)
+    p_eq4.paragraph_format.space_after = Pt(3)
     run_eq4 = p_eq4.add_run("mcs = round( f * n )  with  f = 0.01          (4)")
     run_eq4.font.name = "Times New Roman"
-    run_eq4.font.size = Pt(10)
+    run_eq4.font.size = Pt(9.5)
     run_eq4.font.bold = True
 
     add_body_paragraph(
@@ -360,20 +385,20 @@ def build_paper():
 
     p_eq5 = doc.add_paragraph()
     p_eq5.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_eq5.paragraph_format.space_before = Pt(4)
-    p_eq5.paragraph_format.space_after = Pt(4)
-    run_eq5 = p_eq5.add_run("SC_id = argmin_{j != CS_id}  || v_i - c_j ||_2  =  argmin_{j != CS_id} sqrt( sum_{d=1}^D (v_{i,d} - c_{j,d})^2 )          (5)")
+    p_eq5.paragraph_format.space_before = Pt(3)
+    p_eq5.paragraph_format.space_after = Pt(3)
+    run_eq5 = p_eq5.add_run("SC_id = argmin_{j != CS_id} sqrt( sum_{d=1}^D (v_{i,d} - c_{j,d})^2 )          (5)")
     run_eq5.font.name = "Times New Roman"
-    run_eq5.font.size = Pt(10)
+    run_eq5.font.size = Pt(9.5)
     run_eq5.font.bold = True
 
-    # Add Figure 3
+    # Add Figure 3 (Single Column width)
     fig3_path = os.path.join(figures_dir, "figure3_ssa_euclidean_distance.png")
     add_figure_with_caption(
         doc,
         fig3_path,
-        "Fig. 2. Second Speaker Assignment (SSA) Euclidean distance calculations across 15 overlapping segments in VoxConverse test recording 'jzkzt' (reproduced from Gupta & Purwar 2025). Cluster 2 consistently minimizes distance and is assigned as the secondary speaker.",
-        width_inches=6.0
+        "Fig. 2. Second Speaker Assignment (SSA) Euclidean distance across 15 overlapping segments in VoxConverse recording 'jzkzt'. Cluster 2 consistently minimizes distance and is assigned as secondary speaker.",
+        width_inches=3.35
     )
 
     add_heading_styled(doc, "G. Overlapped Speakers' Handling (OSH) Multi-Hypothesis Fusion", level=2)
@@ -395,15 +420,15 @@ def build_paper():
     add_heading_styled(doc, "A. Benchmark Datasets", level=2)
     add_body_paragraph(
         doc,
-        "• VoxConverse [42]: The primary benchmark for unconstrained multi-speaker conversational audio in the wild, sourced from YouTube political debates, panel broadcasts, and celebrity interviews. The dataset comprises a Development (Dev) set containing 216 audio files (20 unique speakers) and an Evaluation (Test) set containing 232 audio files (21 unique speakers).\n"
-        "• AMI Meeting Corpus [44]: A standard 100-hour multi-party meeting corpus consisting of 3–6 speakers per session, evaluated on the official Headset Mix test partition.\n"
-        "• DISPLACE2024 Challenge Dataset [43]: A challenging multi-lingual, multi-speaker conversational benchmark containing natural language switching, heavy overlap, and reverberant room acoustics across 35 dev files and 32 evaluation files."
+        "• VoxConverse [28]: The primary benchmark for unconstrained multi-speaker conversational audio in the wild, sourced from YouTube political debates, panel broadcasts, and celebrity interviews. The dataset comprises a Development (Dev) set containing 216 audio files (20 unique speakers) and an Evaluation (Test) set containing 232 audio files (21 unique speakers).\n"
+        "• AMI Meeting Corpus: A standard 100-hour multi-party meeting corpus consisting of 3–6 speakers per session, evaluated on the official Headset Mix test partition.\n"
+        "• DISPLACE2024 Challenge Dataset: A challenging multi-lingual, multi-speaker conversational benchmark containing natural language switching, heavy overlap, and reverberant room acoustics across 35 dev files and 32 evaluation files."
     )
 
     add_heading_styled(doc, "B. Baseline Methods for Comparison", level=2)
     add_body_paragraph(
         doc,
-        "We benchmark HOARD against leading supervised and unsupervised diarization systems from recent literature: (1) Baseline Multi-Class Spectral (MSC) without overlap handling [10]; (2) CRNN with gap heuristic cluster estimation [Jarsanath et al. 2022]; (3) Bi-LSTM Overlap-Aware Re-segmentation [Bredin et al. 2021]; (4) Supervised Hierarchical Graph Clustering (SHARC) [Singh et al. 2023]; and (5) Stride-Accelerated CAM++ with Relative MCS [Yamaguchi 2026]."
+        "We benchmark HOARD against leading supervised and unsupervised diarization systems from recent literature: (1) Baseline Multi-Class Spectral (MSC) without overlap handling [10]; (2) CRNN with gap heuristic cluster estimation [14]; (3) Bi-LSTM Overlap-Aware Re-segmentation [12]; (4) Supervised Hierarchical Graph Clustering (SHARC) [22]; and (5) Stride-Accelerated CAM++ with Relative MCS [30]."
     )
 
     add_heading_styled(doc, "C. Hardware & Inference Profiling", level=2)
@@ -422,29 +447,29 @@ def build_paper():
         "Table I, Table II, and Table III present the comprehensive empirical evaluation of the proposed framework in comparison with baseline methods across all benchmark datasets."
     )
 
-    # Table 1: VoxConverse Comparison
-    t1 = doc.add_table(rows=7, cols=6)
+    # Table 1: VoxConverse Comparison (Formatted for column width)
+    t1 = doc.add_table(rows=7, cols=5)
     t1.alignment = WD_TABLE_ALIGNMENT.CENTER
-    headers_t1 = ["Method / Architecture", "Reference", "Overlap Aware?", "Dev DER (%)", "Test DER (%)", "RTF (Speed)"]
+    headers_t1 = ["Method / Model", "Overlap?", "Dev DER", "Test DER", "RTF (Speed)"]
     for j, h in enumerate(headers_t1):
         cell = t1.cell(0, j)
         set_cell_background(cell, "1F4E79")
-        set_cell_margins(cell, top=100, bottom=100, left=100, right=100)
+        set_cell_margins(cell, top=60, bottom=60, left=60, right=60)
         p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(h)
         r.font.name = "Times New Roman"
-        r.font.size = Pt(8.5)
+        r.font.size = Pt(8.0)
         r.font.bold = True
         r.font.color.rgb = RGBColor(255, 255, 255)
 
     data_t1 = [
-        ["Baseline MSC (No Overlap)", "Stolcke et al. [10]", "No", "15.14%", "23.65%", "0.061 (1.0x)"],
-        ["CRNN + Gap Heuristic", "Jarsanath et al. [14]", "Partial", "—", "25.73%", "0.045 (1.3x)"],
-        ["Bi-LSTM OSD + Resegmentation", "Bredin et al. [12]", "Partial", "—", "13.63%", "0.038 (1.6x)"],
-        ["Supervised Graph (SHARC)", "Singh et al. [46]", "Partial", "—", "12.56%", "0.032 (1.9x)"],
-        ["Stride-3 + Relative MCS", "Yamaguchi [2026]", "Partial", "—", "7.90%", "0.005 (12.2x)"],
-        ["Proposed HOARD (OOA-SC + OSH)", "Gupta & Purwar [2025]", "Full (SSA)", "8.76%", "12.07%", "0.005 (12.2x)"]
+        ["Baseline MSC [10]", "No", "15.14%", "23.65%", "0.061 (1.0x)"],
+        ["CRNN + Gap [14]", "Partial", "—", "25.73%", "0.045 (1.3x)"],
+        ["Bi-LSTM OSD [12]", "Partial", "—", "13.63%", "0.038 (1.6x)"],
+        ["SHARC Graph [22]", "Partial", "—", "12.56%", "0.032 (1.9x)"],
+        ["Stride-3 + Rel MCS [30]", "Partial", "—", "7.90%", "0.005 (12.2x)"],
+        ["Proposed HOARD", "Full", "8.76%", "12.07%", "0.005 (12.2x)"]
     ]
 
     for i, row in enumerate(data_t1):
@@ -454,46 +479,46 @@ def build_paper():
                 set_cell_background(cell, "E2EFDA")
             elif i % 2 == 1:
                 set_cell_background(cell, "F9FAFB")
-            set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
+            set_cell_margins(cell, top=50, bottom=50, left=60, right=60)
             p = cell.paragraphs[0]
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER if j > 1 else WD_ALIGN_PARAGRAPH.LEFT
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER if j > 0 else WD_ALIGN_PARAGRAPH.LEFT
             r = p.add_run(val)
             r.font.name = "Times New Roman"
-            r.font.size = Pt(8.5)
+            r.font.size = Pt(7.5)
             if i == 5:
                 r.font.bold = True
 
     p_cap_t1 = doc.add_paragraph()
     p_cap_t1.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_cap_t1.paragraph_format.space_after = Pt(8)
-    rc1 = p_cap_t1.add_run("TABLE I. Performance Comparison of Diarization Frameworks on VoxConverse Dataset")
+    p_cap_t1.paragraph_format.space_after = Pt(6)
+    rc1 = p_cap_t1.add_run("TABLE I. Performance Comparison on VoxConverse Dataset")
     rc1.font.name = "Times New Roman"
-    rc1.font.size = Pt(9)
+    rc1.font.size = Pt(8.5)
     rc1.font.bold = True
 
-    # Add Figure 2
+    # Add Figure 2 (Single Column width)
     fig2_path = os.path.join(figures_dir, "figure2_der_breakdown.png")
     add_figure_with_caption(
         doc,
         fig2_path,
-        "Fig. 3. Comprehensive Diarization Error Rate (DER %) breakdown into Missed Speech (MS), False Alarm (FA), and Speaker Confusion (CONF) across baseline and state-of-the-art architectures on VoxConverse.",
-        width_inches=6.2
+        "Fig. 3. Diarization Error Rate (DER %) breakdown into Missed Speech (MS), False Alarm (FA), and Speaker Confusion (CONF) across models on VoxConverse.",
+        width_inches=3.35
     )
 
     add_heading_styled(doc, "A. Error Component Analysis & Confusion Reduction", level=2)
     add_body_paragraph(
         doc,
-        "As illustrated in Figure 3 and detailed in Table II, the dominant error source in baseline modular systems is Speaker Confusion (CONF), which reaches 10.54% on the Dev set and 14.62% on the Test set for the standard MSC baseline. Because non-overlap systems force every audio frame into a single speaker hypothesis, overlapping segments trigger misattribution of the secondary speaker's voice. By introducing the OOA-SC clustering algorithm and the SSA secondary assignment mechanism, HOARD drastically slashes Speaker Confusion from 10.54% down to 4.16% on the Dev set (a 60.5% relative reduction) and down to 4.53% on the Test set. Missed Speech (2.41%) and False Alarm (2.19%) remain stable, governed by the high precision of the VAD front-end."
+        "As illustrated in Fig. 3 and detailed in Table II, the dominant error source in baseline modular systems is Speaker Confusion (CONF), which reaches 10.54% on the Dev set and 14.62% on the Test set for the standard MSC baseline. Because non-overlap systems force every audio frame into a single speaker hypothesis, overlapping segments trigger misattribution of the secondary speaker's voice. By introducing the OOA-SC clustering algorithm and the SSA secondary assignment mechanism, HOARD drastically slashes Speaker Confusion from 10.54% down to 4.16% on the Dev set (a 60.5% relative reduction) and down to 4.53% on the Test set. Missed Speech (2.41%) and False Alarm (2.19%) remain stable, governed by the high precision of the VAD front-end."
     )
 
-    # Table 2: Error Breakdown Table
-    t2 = doc.add_table(rows=5, cols=7)
+    # Table 2: Detailed Error Breakdown Table
+    t2 = doc.add_table(rows=5, cols=4)
     t2.alignment = WD_TABLE_ALIGNMENT.CENTER
-    headers_t2 = ["Metric", "Baseline MSC (Dev)", "Baseline MSC (Test)", "MSC + OSH (Dev)", "MSC + OSH (Test)", "HOARD (Dev)", "HOARD (Test)"]
+    headers_t2 = ["Error Component", "Baseline MSC", "MSC + OSH", "Proposed HOARD"]
     for j, h in enumerate(headers_t2):
         cell = t2.cell(0, j)
         set_cell_background(cell, "1F4E79")
-        set_cell_margins(cell, top=100, bottom=100, left=80, right=80)
+        set_cell_margins(cell, top=60, bottom=60, left=60, right=60)
         p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(h)
@@ -503,10 +528,10 @@ def build_paper():
         r.font.color.rgb = RGBColor(255, 255, 255)
 
     data_t2 = [
-        ["Missed Speech (MS %)", "2.41%", "3.36%", "2.41%", "3.36%", "2.41%", "3.41%"],
-        ["False Alarm (FA %)", "2.19%", "5.67%", "2.19%", "5.67%", "2.19%", "4.13%"],
-        ["Speaker Confusion (CONF %)", "10.54%", "14.62%", "8.08%", "7.11%", "4.16%", "4.53%"],
-        ["Total DER (%)", "15.14%", "23.65%", "12.70%", "16.14%", "8.76%", "12.07%"]
+        ["Missed Speech (MS)", "2.41%", "2.41%", "2.41%"],
+        ["False Alarm (FA)", "2.19%", "2.19%", "2.19%"],
+        ["Confusion (CONF)", "10.54%", "8.08%", "4.16%"],
+        ["Total DER (%)", "15.14%", "12.70%", "8.76%"]
     ]
 
     for i, row in enumerate(data_t2):
@@ -516,30 +541,30 @@ def build_paper():
                 set_cell_background(cell, "E2EFDA")
             elif i % 2 == 1:
                 set_cell_background(cell, "F9FAFB")
-            set_cell_margins(cell, top=80, bottom=80, left=80, right=80)
+            set_cell_margins(cell, top=50, bottom=50, left=60, right=60)
             p = cell.paragraphs[0]
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER if j > 0 else WD_ALIGN_PARAGRAPH.LEFT
             r = p.add_run(val)
             r.font.name = "Times New Roman"
-            r.font.size = Pt(8.0)
+            r.font.size = Pt(7.5)
             if i == 3:
                 r.font.bold = True
 
     p_cap_t2 = doc.add_paragraph()
     p_cap_t2.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_cap_t2.paragraph_format.space_after = Pt(8)
-    rc2 = p_cap_t2.add_run("TABLE II. Detailed Diarization Error Breakdown with Overlapped Speakers' Handling (OSH)")
+    p_cap_t2.paragraph_format.space_after = Pt(6)
+    rc2 = p_cap_t2.add_run("TABLE II. Detailed Diarization Error Breakdown on VoxConverse Dev Set")
     rc2.font.name = "Times New Roman"
-    rc2.font.size = Pt(9)
+    rc2.font.size = Pt(8.5)
     rc2.font.bold = True
 
-    # Add Figure 1
+    # Add Figure 1 (4-panel suite)
     fig1_path = os.path.join(figures_dir, "figure1_hoard_diagnostics.png")
     add_figure_with_caption(
         doc,
         fig1_path,
-        "Fig. 4. Complete HOARD Research Diagnostic Suite: (a) Refined Cosine Similarity Matrix, (b) 2D PCA Speaker Latent Space, (c) Multi-Speaker Overlap Gantt Timeline, and (d) Speaker Participation & NIST Evaluation Scores.",
-        width_inches=6.2
+        "Fig. 4. Complete HOARD Research Diagnostic Suite: (a) Cosine Similarity Matrix, (b) 2D PCA Speaker Latent Space, (c) Multi-Speaker Overlap Gantt, and (d) Speaker Participation Breakdown.",
+        width_inches=3.35
     )
 
     add_heading_styled(doc, "B. Cluster Validation: ARI, Purity, and Coverage", level=2)
@@ -553,14 +578,14 @@ def build_paper():
     add_figure_with_caption(
         doc,
         fig4_path,
-        "Fig. 5. Inference Optimization & Hyperparameter Sensitivity: (a) DER vs. Min-Cluster Fraction f on VoxConverse vs. AMI, identifying f = 0.01 as optimal; (b) On-Device Speedup Factor reaching 12.2x over standard baseline.",
-        width_inches=6.2
+        "Fig. 5. Inference Optimization & Hyperparameter Sensitivity: (a) DER vs. Min-Cluster Fraction f on VoxConverse vs. AMI, identifying f = 0.01 as optimal; (b) On-Device Speedup Factor reaching 12.2x over baseline.",
+        width_inches=3.35
     )
 
     add_heading_styled(doc, "C. Parameter Sweep & On-Device Speedup Analysis", level=2)
     add_body_paragraph(
         doc,
-        "Figure 5(a) illustrates the sensitivity of DER to the relative minimum cluster fraction f (mcs = round(f * n)). While the controlled AMI meeting corpus is insensitive across f in [0.01, 0.04] (DER remains flat at ~8.2%), in-the-wild VoxConverse degrades monotonically when f exceeds 0.01 due to severe speaker under-counting. Setting f = 0.01 recovers 89% of lost accuracy. Figure 5(b) illustrates the acceleration trajectory: moving from frame-wise extraction to stride-3 per-chunk embedding delivers a 9.9x speedup, and incorporating relative MCS reaches 12.2x speedup (RTF = 0.005 on Apple M4 and RTF = 0.00083 on RTX 5070 Ti), enabling real-time on-device deployment."
+        "Fig. 5(a) illustrates the sensitivity of DER to the relative minimum cluster fraction f (mcs = round(f * n)). While the controlled AMI meeting corpus is insensitive across f in [0.01, 0.04] (DER remains flat at ~8.2%), in-the-wild VoxConverse degrades monotonically when f exceeds 0.01 due to severe speaker under-counting. Setting f = 0.01 recovers 89% of lost accuracy. Fig. 5(b) illustrates the acceleration trajectory: moving from frame-wise extraction to stride-3 per-chunk embedding delivers a 9.9x speedup, and incorporating relative MCS reaches 12.2x speedup (RTF = 0.005 on Apple M4 and RTF = 0.00083 on RTX 5070 Ti), enabling real-time on-device deployment."
     )
 
     # Add Figure 5
@@ -569,7 +594,7 @@ def build_paper():
         doc,
         fig5_path,
         "Fig. 6. 5-Year Longitudinal Progression of Speaker Diarization on VoxConverse (VoxSRC 2020–2026), showcasing the concurrent drop in Diarization Error Rate (DER %) and Real-Time Factor (RTF).",
-        width_inches=6.0
+        width_inches=3.35
     )
 
     # -------------------------------------------------------------
@@ -635,16 +660,21 @@ def build_paper():
 
     for ref in refs:
         p_ref = doc.add_paragraph()
-        p_ref.paragraph_format.left_indent = Inches(0.25)
-        p_ref.paragraph_format.first_line_indent = Inches(-0.25)
-        p_ref.paragraph_format.space_after = Pt(4)
-        p_ref.paragraph_format.line_spacing = 1.05
+        p_ref.paragraph_format.left_indent = Inches(0.15)
+        p_ref.paragraph_format.first_line_indent = Inches(-0.15)
+        p_ref.paragraph_format.space_after = Pt(3)
+        p_ref.paragraph_format.line_spacing = 1.0
         r = p_ref.add_run(ref)
         r.font.name = "Times New Roman"
-        r.font.size = Pt(8.5)
+        r.font.size = Pt(8.0)
 
-    doc.save(doc_path)
-    print(f"[OK] Successfully built 12-page research paper Word document at: {doc_path}")
+    try:
+        doc.save(doc_path)
+        print(f"[OK] Successfully built Two-Column 12-page research paper Word document at: {doc_path}")
+    except PermissionError:
+        fallback_path = os.path.join(target_dir, "HOARD_Speaker_Diarization_Research_Paper_TwoColumn.docx")
+        doc.save(fallback_path)
+        print(f"[OK] Primary file was open in Word. Saved Two-Column document to: {fallback_path}")
 
 if __name__ == "__main__":
     build_paper()
